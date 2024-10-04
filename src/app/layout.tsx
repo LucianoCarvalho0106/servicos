@@ -1,5 +1,8 @@
+
 import type { Metadata } from "next";
 import "./globals.css";
+import { Myprovider } from "./contexts/myContext";
+
 
 
 export const metadata: Metadata = {
@@ -15,7 +18,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {children}
+        {
+          <Myprovider>
+            {children}
+          </Myprovider>
+        }
       </body>
     </html>
   );
