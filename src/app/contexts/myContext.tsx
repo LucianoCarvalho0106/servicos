@@ -1,5 +1,6 @@
 "use client"
 import { createContext, ReactNode, useState } from "react";
+import { IdadosForm } from "../dados/etapasForm";
 
 const myContext = createContext<UserContextType | undefined>(undefined);
 
@@ -8,12 +9,28 @@ type MyProviderProps = {
 };
 
 interface UserContextType {
-    user: Record<string, any>; // ou uma interface mais específica para o usuário
+    user: Record<string, any>;
     setUser: React.Dispatch<React.SetStateAction<Record<string, any>>>;
 }
 
+
+
 export function Myprovider ({children}:MyProviderProps){
-    const [user,setUser] = useState<Record<string, any>>({});
+    const [user,setUser] = useState<Partial<IdadosForm>>({
+        nome: '',
+        contato: '',
+        idade: 0,
+        endereco: '',
+        atividades: [
+          {
+            empresa: '',
+            descricaoAtividades: ''
+          }
+        ],
+        cargo: '',
+        descricaoHabilidades: '',
+        foto: ''
+      });
 
     return(
         <myContext.Provider value={{user,setUser}}>

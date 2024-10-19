@@ -2,29 +2,25 @@
 import { useState } from 'react';
 import { Step1, Step2, Step3 } from '../dados/etapasForm';
 import FileInput from './FileInput';
-import { addDoc, doc, setDoc,collection } from "firebase/firestore";
-import { db,auth } from '../../../config/firebase';
+import { doc, setDoc } from "firebase/firestore";
+import { db, auth } from '../../../config/firebase';
 import { useRouter } from 'next/navigation';
 
-interface IdadosForm {
+export interface IdadosForm {
   nome: string;
   contato: string;
   idade: number;
   endereco: string;
-  empresa: string;
-  descricaoAtividades: string;
+  atividades: {
+    empresa: string;
+    descricaoAtividades: string;
+  }[]; // Um array de objetos de atividades
   cargo: string;
   descricaoHabilidades: string;
+  foto: string;
 }
-
-interface StepProps {
-  dadosUser: Partial<IdadosForm>;
-  setDadosUser: React.Dispatch<React.SetStateAction<Partial<IdadosForm>>>;
-}
-
 
 const MultiStepForm = () => {
- 
   // Gerencia o índice da etapa atual
   const [currentStep, setCurrentStep] = useState(0);
   const router = useRouter();
@@ -35,36 +31,42 @@ const MultiStepForm = () => {
     contato: '',
     idade: 0,
     endereco: '',
-    empresa: '',
-    descricaoAtividades: '',
+    atividades: [
+      {
+        empresa: '',
+        descricaoAtividades: ''
+      }
+    ], // Inicializa com um array contendo um objeto vazio para "atividades"
     cargo: '',
     descricaoHabilidades: '',
+    foto: ''
   });
 
-   // Array com os componentes de cada etapa
-   const steps = [
-    <Step1 dadosUser={dadosUser} setDadosUser={setDadosUser} />, 
-    <Step2 dadosUser={dadosUser} setDadosUser={setDadosUser} />, 
+  // Definir os passos do formulário
+  const steps = [
+    <Step1 dadosUser={dadosUser} setDadosUser={setDadosUser} />,
+    <Step2 dadosUser={dadosUser} setDadosUser={setDadosUser} />,
     <Step3 dadosUser={dadosUser} setDadosUser={setDadosUser} />
   ];
 
   // Função para avançar para a próxima etapa
-  const handleNext = async() => {
+  const handleNext = async () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep((prev) => prev + 1);
-    }else {
+    } else {
       // Caso seja a última etapa, salva os dados no Firebase
       try {
-      const user = auth.currentUser;
+        const user = auth.currentUser;
 
-      if (user) {
-        const uid = user.uid;
+        if (user) {
+          const uid = user.uid;
 
-        // Adiciona os dados com o uid do usuário
-        await setDoc(doc(db, "users", uid), dadosUser);
-        alert("Dados salvos com sucesso!")} 
-        router.push("/dashboard")
-      }catch (error) {
+          // Adiciona os dados com o uid do usuário
+          await setDoc(doc(db, "users", uid), dadosUser);
+          alert("Dados salvos com sucesso!");
+          router.push("/dashboard");
+        }
+      } catch (error) {
         console.error("Erro ao salvar os dados: ", error);
         alert("Houve um erro ao salvar os dados.");
       }
@@ -79,21 +81,21 @@ const MultiStepForm = () => {
   };
 
   return (
-    <div className='relative'>
+    <div className="relative">
       <h2 className="text-2xl font-bold ml-8 pt-8 absolute">Preencha alguns dados ...</h2>
 
       <div className="h-screen flex flex-col items-center justify-center">
         {/* Renderiza o componente da etapa atual */}
         {steps[currentStep]}
 
-        <div className='mt-12 w-1/3'>
+        <div className="mt-12 w-1/3">
           {/* Exibe o FileInput na primeira etapa */}
-          {currentStep == 0 ? <FileInput /> : null}
+          {currentStep === 0 ? <FileInput setDadosUser={setDadosUser} /> : null}
 
-          <div className='flex justify-between mt-4'>
+          <div className="flex justify-between mt-4">
             {/* Botão para voltar */}
             <button
-              className='bg-blue-500 text-white p-2 w-72 rounded-sm'
+              className="bg-blue-500 text-white p-2 w-72 rounded-sm"
               onClick={handlePrevious}
               disabled={currentStep === 0}
             >
@@ -102,7 +104,7 @@ const MultiStepForm = () => {
 
             {/* Botão para avançar */}
             <button
-              className='bg-green-600 text-white p-2 w-72 rounded-sm'
+              className="bg-green-600 text-white p-2 w-72 rounded-sm"
               onClick={handleNext}
             >
               Avançar

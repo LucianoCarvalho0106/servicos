@@ -89,7 +89,7 @@ const loginWithEmail = async () => {
     console.log(userLogin)
     localStorage.setItem("user",JSON.stringify(userLogin))
     
-    router.push('/dashboard'); 
+    checkUserInfo(); 
   } catch (error) {
     console.error(error);
   }

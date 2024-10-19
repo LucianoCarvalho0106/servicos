@@ -9,10 +9,11 @@ import Link from "next/link";
 interface props {
     isEmplloyee:boolean,
     nome:string,
-    cargo:string
+    cargo:string,
+    src:string
 }
 
-export default function SideBar ({isEmplloyee,nome,cargo}:props) {
+export default function SideBar ({isEmplloyee,nome,cargo,src}:props) {
 
     const router = useRouter();
 
@@ -29,7 +30,7 @@ export default function SideBar ({isEmplloyee,nome,cargo}:props) {
   return (
     <div className="bg-blue-500 h-screen w-[330px] relative">
     <div className="flex ml-2 gap-2 mb-8">
-        <Image className="rounded-full object-cover mt-4" src="/images/profilePhoto.avif" width={50} height={50} alt="profile photo"></Image>
+        <Image className="rounded-full object-cover mt-4" src={src} width={50} height={50} alt="profile photo"></Image>
         <div className="mt-4">
             <h3 className="text-white font-bold text-lg">{nome}</h3>
             {isEmplloyee && (<h5 className="text-white font-medium">{cargo}</h5>)}

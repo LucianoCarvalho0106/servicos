@@ -1,14 +1,17 @@
 
-interface IdadosForm {
-    nome: string;
-    contato: string;
-    idade: number;
-    endereco: string;
+export interface IdadosForm {
+  nome: string;
+  contato: string;
+  idade: number;
+  endereco: string;
+  atividades: {
     empresa: string;
     descricaoAtividades: string;
-    cargo: string;
-    descricaoHabilidades: string;
-  }
+  }[]; // Um array de objetos de atividades
+  cargo: string;
+  descricaoHabilidades: string;
+  foto: string;
+}
 
   interface StepProps {
     dadosUser: Partial<IdadosForm>;
@@ -90,12 +93,23 @@ const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser })  => {
   
   
   // Step2.js
-  const Step2: React.FC<StepProps> = ({ dadosUser, setDadosUser })  => {
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setDadosUser((prev) => ({
-        ...prev,
-        [e.target.id]: e.target.value,
-      }));
+  const Step2: React.FC<StepProps> = ({ dadosUser, setDadosUser }) => {
+    const handleChangeAtividade = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const { id, value } = e.target;
+  
+      // Atualizando o primeiro item das atividades (index 0)
+      setDadosUser((prev) => {
+        const atividadesAtualizadas = prev.atividades ? [...prev.atividades] : [{ empresa: '', descricaoAtividades: '' }];
+        atividadesAtualizadas[0] = {
+          ...atividadesAtualizadas[0],
+          [id]: value,
+        };
+  
+        return {
+          ...prev,
+          atividades: atividadesAtualizadas,
+        };
+      });
     };
   
     return (
@@ -118,17 +132,12 @@ const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser })  => {
                   type="text"
                   placeholder="Nome"
                   id="empresa"
-                  value={dadosUser.empresa || ''}
-                  onChange={handleChange}
+                  value={dadosUser.atividades?.[0]?.empresa || ''}
+                  onChange={handleChangeAtividade}  // Use a função handleChangeAtividade
                 />
               </div>
   
-              <button
-                onClick={(e) => e.preventDefault()}
-                className="text-5xl text-white bg-blue-500 w-20 h-12 rounded -mt-5"
-              >
-                +
-              </button>
+              
             </div>
   
             <div>
@@ -137,8 +146,8 @@ const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser })  => {
                 className="w-full h-52 border p-1 border-black"
                 name="descricaoAtividades"
                 id="descricaoAtividades"
-                value={dadosUser.descricaoAtividades || ''}
-                onChange={handleChange}
+                value={dadosUser.atividades?.[0]?.descricaoAtividades || ''}
+                onChange={handleChangeAtividade} // Use a função handleChangeAtividade
               ></textarea>
             </div>
           </div>
@@ -146,7 +155,6 @@ const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser })  => {
       </div>
     );
   };
-  
   
   
   
