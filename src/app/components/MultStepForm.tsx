@@ -1,6 +1,6 @@
 "use client";
-import { useState } from 'react';
-import { Step1, Step2, Step3 } from '../dados/etapasForm';
+import { useEffect, useState } from 'react';
+import { Step1, Step2, Step3 } from '../editar/etapasForm';
 import FileInput from './FileInput';
 import { doc, setDoc } from "firebase/firestore";
 import { db, auth } from '../../../config/firebase';
@@ -25,6 +25,13 @@ const MultiStepForm = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const router = useRouter();
 
+  const [userData,setUserData] = useState({})
+  useEffect(()=>{
+    const user = JSON.parse(localStorage.getItem("userData")!)
+    setUserData(user)
+    console.log(user)
+  },[])
+
   // Estado para armazenar dados do formulário
   const [dadosUser, setDadosUser] = useState<Partial<IdadosForm>>({
     nome: '',
@@ -44,9 +51,9 @@ const MultiStepForm = () => {
 
   // Definir os passos do formulário
   const steps = [
-    <Step1 dadosUser={dadosUser} setDadosUser={setDadosUser} />,
-    <Step2 dadosUser={dadosUser} setDadosUser={setDadosUser} />,
-    <Step3 dadosUser={dadosUser} setDadosUser={setDadosUser} />
+    <Step1 user={userData} dadosUser={dadosUser} setDadosUser={setDadosUser} />,
+    <Step2 user={userData}  dadosUser={dadosUser} setDadosUser={setDadosUser} />,
+    <Step3 user={userData}  dadosUser={dadosUser} setDadosUser={setDadosUser} />
   ];
 
   // Função para avançar para a próxima etapa

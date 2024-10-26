@@ -37,7 +37,7 @@ export default function SideBar ({isEmplloyee,nome,cargo,src}:props) {
         </div>
     </div>
       <ul className="ml-2">
-        <li className="cursor-pointer text-white text-xl"><Link href={"/dados"}>Editar meus dados</Link></li>
+        <li className="cursor-pointer text-white text-xl"><Link href={"/editar"}>Editar meus dados</Link></li>
         
         {isEmplloyee && (
             <span>

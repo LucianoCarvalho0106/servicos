@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 
 export interface IdadosForm {
   nome: string;
@@ -16,12 +17,14 @@ export interface IdadosForm {
   interface StepProps {
     dadosUser: Partial<IdadosForm>;
     setDadosUser: React.Dispatch<React.SetStateAction<Partial<IdadosForm>>>;
-    user:any;
+    user:any
   }
 
+ 
 
-// Step1.js
-const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser,user })  => {
+  const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser,user }) => {
+   
+  
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setDadosUser((prev) => ({
         ...prev,
@@ -48,7 +51,7 @@ const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser,user })  => {
                 type="text"
                 placeholder="Nome"
                 id="nome"
-                value={dadosUser.nome || ''}
+                value={user.nome || ''}
                 onChange={handleChange}
               />
               <br />
@@ -58,7 +61,7 @@ const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser,user })  => {
                 type="number"
                 placeholder="Idade"
                 id="idade"
-                value={dadosUser.idade || ''}
+                value={user.idade || ''}
                 onChange={handleChange}
               />
             </div>
@@ -70,7 +73,7 @@ const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser,user })  => {
                 type="text"
                 placeholder="(xx) x xxxx-xxxx"
                 id="contato"
-                value={dadosUser.contato || ''}
+                value={user.contato || ''}
                 onChange={handleChange}
               />
               <br />
@@ -80,7 +83,7 @@ const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser,user })  => {
                 type="text"
                 placeholder="Endereço"
                 id="endereco"
-                value={dadosUser.endereco || ''}
+                value={user.endereco || ''}
                 onChange={handleChange}
               />
             </div>
@@ -93,19 +96,17 @@ const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser,user })  => {
   
   
   
-  // Step2.js
   const Step2: React.FC<StepProps> = ({ dadosUser, setDadosUser,user }) => {
+    
+  
     const handleChangeAtividade = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { id, value } = e.target;
-  
-      // Atualizando o primeiro item das atividades (index 0)
       setDadosUser((prev) => {
         const atividadesAtualizadas = prev.atividades ? [...prev.atividades] : [{ empresa: '', descricaoAtividades: '' }];
         atividadesAtualizadas[0] = {
           ...atividadesAtualizadas[0],
           [id]: value,
         };
-  
         return {
           ...prev,
           atividades: atividadesAtualizadas,
@@ -133,12 +134,10 @@ const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser,user })  => {
                   type="text"
                   placeholder="Nome"
                   id="empresa"
-                  value={dadosUser.atividades?.[0]?.empresa || ''}
-                  onChange={handleChangeAtividade}  // Use a função handleChangeAtividade
+                  value={user.atividades?.[0]?.empresa || ''}
+                  onChange={handleChangeAtividade}
                 />
               </div>
-  
-              
             </div>
   
             <div>
@@ -147,8 +146,8 @@ const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser,user })  => {
                 className="w-full h-52 border p-1 border-black"
                 name="descricaoAtividades"
                 id="descricaoAtividades"
-                value={dadosUser.atividades?.[0]?.descricaoAtividades || ''}
-                onChange={handleChangeAtividade} // Use a função handleChangeAtividade
+                value={user.atividades?.[0]?.descricaoAtividades || ''}
+                onChange={handleChangeAtividade}
               ></textarea>
             </div>
           </div>
@@ -158,9 +157,9 @@ const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser,user })  => {
   };
   
   
+  const Step3: React.FC<StepProps> = ({ dadosUser, setDadosUser,user }) => {
+    
   
-  // Step3.js
-  const Step3:React.FC<StepProps> = ({ dadosUser, setDadosUser,user }) => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setDadosUser((prev) => ({
         ...prev,
@@ -187,7 +186,7 @@ const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser,user })  => {
                   className="outline-none p-1 border border-slate-400 rounded-sm w-72 mb-8"
                   type="text"
                   id="cargo"
-                  value={dadosUser.cargo || ''}
+                  value={user.cargo || ''}
                   onChange={handleChange}
                 />
               </div>
@@ -199,7 +198,7 @@ const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser,user })  => {
                 className="w-full h-52 border p-1 border-black"
                 name="descricaoHabilidades"
                 id="descricaoHabilidades"
-                value={dadosUser.descricaoHabilidades || ''}
+                value={user.descricaoHabilidades || ''}
                 onChange={handleChange}
               ></textarea>
             </div>
@@ -208,7 +207,6 @@ const Step1: React.FC<StepProps> = ({ dadosUser, setDadosUser,user })  => {
       </div>
     );
   };
-  
   
   
   export {Step1,Step2,Step3};
