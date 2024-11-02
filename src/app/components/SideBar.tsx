@@ -30,7 +30,8 @@ export default function SideBar ({isEmplloyee,nome,cargo,src}:props) {
   return (
     <div className="bg-blue-500 h-screen w-[330px] relative">
     <div className="flex ml-2 gap-2 mb-8">
-        <Image className="rounded-full object-cover mt-4" src={src} width={50} height={50} alt="profile photo"></Image>
+      <div className="w-12 h-12 overflow-hidden rounded-full mt-4"><Image className="rounded-full object-cover" src={src} width={50} height={50} alt="profile photo"></Image></div>
+        
         <div className="mt-4">
             <h3 className="text-white font-bold text-lg">{nome}</h3>
             {isEmplloyee && (<h5 className="text-white font-medium">{cargo}</h5>)}
@@ -41,7 +42,7 @@ export default function SideBar ({isEmplloyee,nome,cargo,src}:props) {
         
         {isEmplloyee && (
             <span>
-                <li className="cursor-pointer text-white my-1 text-xl">Adicionar serviços</li>
+                <li className="cursor-pointer text-white my-1 text-xl" onClick={()=>router.push("/adicionarServico")}>Adicionar serviços</li>
                 <li className="cursor-pointer text-white my-1 text-xl">Atualizar serviço</li>
                 <li className="cursor-pointer text-white my-1 text-xl">Remover Serviço</li>
             </span>
