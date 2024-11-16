@@ -1,4 +1,5 @@
-"use client"
+"use client";
+
 import { useRouter } from "next/navigation";
 import SideBar from "../components/SideBar";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -29,7 +30,9 @@ type Atividade = {
 export default function MeusServicos() {
   const router = useRouter();
   const [userData, setUserData] = useState<Atividade | null>(null);
-  const storage = getStorage(); // Inicializa o Firebase Storage
+  const [selectedServico, setSelectedServico] = useState<Servico | null>(null); // Serviço selecionado
+  const [isModalOpen, setIsModalOpen] = useState(false); // Controle do modal
+  const storage = getStorage();
 
   const fetchUserData = async () => {
     const user = auth.currentUser;
@@ -56,38 +59,53 @@ export default function MeusServicos() {
     }
   };
 
-  const handleDeleteServico = async (servicoNome: string, logoPath?: string) => {
-    if (!userData) return;
+  const handleServiceClick = (servico: Servico) => {
+    setSelectedServico(servico); // Define o serviço selecionado
+    setIsModalOpen(true); // Abre o modal
+  };
 
-    const updatedServicos = userData.servicos.filter(
-      (servico) => servico.nome !== servicoNome
-    );
+  const handleCloseModal = () => {
+    setSelectedServico(null); // Remove o serviço selecionado
+    setIsModalOpen(false); // Fecha o modal
+  };
 
-    const updatedUserData = { ...userData, servicos: updatedServicos };
+  const handleUpdateService = (servico: Servico) => {
+    console.log("Atualizando serviço:", servico.nome);
+    // Adicione aqui a lógica para atualizar o serviço
+  };
 
-    try {
-      // Excluir a imagem associada ao serviço no Storage
-      if (logoPath) {
-        const logoRef = ref(storage, logoPath);
+  const handleDeleteService = async (servico: Servico) => {
+    console.log("Excluindo serviço:", servico.nome);
+
+    // Excluir logo do serviço do Firebase Storage
+    if (servico.logo) {
+      const logoRef = ref(storage, servico.logo);
+      try {
         await deleteObject(logoRef);
-        console.log(`Imagem "${logoPath}" excluída com sucesso.`);
+        console.log("Logo excluído com sucesso.");
+      } catch (error) {
+        console.error("Erro ao excluir logo:", error);
       }
+    }
 
-      // Atualizar o Firestore
-      const user = auth.currentUser;
-      if (user) {
-        const uid = user.uid;
-        const userDocRef = doc(db, "users", uid);
+    // Atualizar o Firestore removendo o serviço
+    if (userData) {
+      const updatedServicos = userData.servicos.filter(
+        (s) => s.nome !== servico.nome
+      );
+      const userDocRef = doc(db, "users", auth.currentUser!.uid);
+
+      try {
         await updateDoc(userDocRef, { servicos: updatedServicos });
+        console.log("Serviço excluído do Firestore.");
+        setUserData({ ...userData, servicos: updatedServicos });
+        localStorage.setItem(
+          "userData",
+          JSON.stringify({ ...userData, servicos: updatedServicos })
+        );
+      } catch (error) {
+        console.error("Erro ao atualizar Firestore:", error);
       }
-
-      // Atualizar o estado e o localStorage
-      setUserData(updatedUserData);
-      localStorage.setItem("userData", JSON.stringify(updatedUserData));
-
-      console.log(`Serviço "${servicoNome}" excluído com sucesso.`);
-    } catch (error) {
-      console.error("Erro ao excluir o serviço ou imagem:", error);
     }
   };
 
@@ -116,45 +134,83 @@ export default function MeusServicos() {
       <div className="w-full p-4">
         {userData?.servicos?.map((servico: Servico) => (
           <div
-            className="border border-gray rounded w-full my-2 p-2 flex items-center gap-2"
+            className="border border-gray-500 rounded w-full my-2 p-2 flex items-center gap-2"
             key={servico.nome}
           >
-            <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
-              <Image
-                className="object-cover"
-                src={servico.logo || "/images/placeholder.png"}
-                height={64}
-                width={64}
-                alt={`Logo do serviço ${servico.nome}`}
-              />
-            </div>
-            <div className="w-full flex justify-between">
-              <div className="font-semibold capitalize">{servico.nome}</div>
-              <div className="flex items-center gap-6 mr-6">
-                <button>
-                  <Image
-                    src="/images/atualizar.png"
-                    width={30}
-                    height={30}
-                    alt="atualizar"
-                  />
-                </button>
-                <button
-                  onClick={() =>
-                    handleDeleteServico(servico.nome, servico.logo)
-                  }
-                >
-                  <Image
-                    src="/images/excluir.png"
-                    width={30}
-                    height={30}
-                    alt="excluir"
-                  />
-                </button>
+            {/* Clique no restante do card para abrir o modal */}
+            <div
+              className="flex-1 cursor-pointer"
+              onClick={() => handleServiceClick(servico)}
+            >
+              <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                <Image
+                  className="object-cover"
+                  src={servico.logo || "/images/placeholder.png"}
+                  height={64}
+                  width={64}
+                  alt={`Logo do serviço ${servico.nome}`}
+                />
               </div>
+              <div className="font-semibold capitalize">{servico.nome}</div>
+            </div>
+
+            {/* Botões de ação */}
+            <div className="flex items-center gap-6">
+              <button onClick={() => handleUpdateService(servico)}>
+                <Image
+                  src="/images/atualizar.png"
+                  width={30}
+                  height={30}
+                  alt="atualizar"
+                />
+              </button>
+              <button onClick={() => handleDeleteService(servico)}>
+                <Image
+                  src="/images/excluir.png"
+                  width={30}
+                  height={30}
+                  alt="excluir"
+                />
+              </button>
             </div>
           </div>
         ))}
+
+        {/* Modal */}
+        {isModalOpen && selectedServico && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded shadow-lg w-96 max-w-full flex flex-col items-center text-center">
+              {/* Título */}
+              <h2 className="text-xl font-bold mb-4">{selectedServico.nome}</h2>
+
+              {/* Foto */}
+              {selectedServico.logo && (
+                <div className="w-32 h-32 mb-4">
+                  <Image
+                    className="object-cover rounded-full"
+                    src={selectedServico.logo}
+                    alt={`Logo do serviço ${selectedServico.nome}`}
+                    width={128}
+                    height={128}
+                  />
+                </div>
+              )}
+
+              {/* Descrição com rolagem */}
+              <div className="text-sm text-gray-600 mb-6 break-words overflow-y-auto max-h-40 w-full px-2">
+                {selectedServico.descricao}
+              </div>
+
+              {/* Botão de Fechar */}
+              <button
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+                onClick={handleCloseModal}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
