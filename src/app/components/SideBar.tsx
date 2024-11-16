@@ -38,13 +38,14 @@ export default function SideBar ({isEmplloyee,nome,cargo,src}:props) {
         </div>
     </div>
       <ul className="ml-2">
+        <li className="cursor-pointer text-white my-1 text-xl" onClick={()=>router.push("/dashboard")}>Início</li>
         <li className="cursor-pointer text-white text-xl"><Link href={"/editar"}>Editar meus dados</Link></li>
         
         {isEmplloyee && (
             <span>
                 <li className="cursor-pointer text-white my-1 text-xl" onClick={()=>router.push("/adicionarServico")}>Adicionar serviços</li>
-                <li className="cursor-pointer text-white my-1 text-xl">Atualizar serviço</li>
-                <li className="cursor-pointer text-white my-1 text-xl">Remover Serviço</li>
+                <li className="cursor-pointer text-white my-1 text-xl" onClick={()=>router.push("/meusServicos")}>Meus serviços</li>
+                
             </span>
         )}
       </ul>

@@ -53,8 +53,9 @@ export default function App() {
   useEffect(()=>{fetchUserData()},[])
 
   return (
-    <>
+    <div className="flex">
       <SideBar nome={userData.nome} cargo={userData.cargo} isEmplloyee={true} src={userData.foto}></SideBar>
-    </>
+      <div></div>
+    </div>
   );
 }
