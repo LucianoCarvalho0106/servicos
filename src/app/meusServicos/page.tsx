@@ -1,9 +1,8 @@
-"use client";
-
+"use client"
 import { useRouter } from "next/navigation";
 import SideBar from "../components/SideBar";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
-import { deleteObject, getStorage, ref } from "firebase/storage";
+import { doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { deleteObject, getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useEffect, useState } from "react";
 import { auth, db } from "../../../config/firebase";
 import Image from "next/image";
@@ -30,9 +29,13 @@ type Atividade = {
 export default function MeusServicos() {
   const router = useRouter();
   const [userData, setUserData] = useState<Atividade | null>(null);
-  const [selectedServico, setSelectedServico] = useState<Servico | null>(null); // Serviço selecionado
-  const [isModalOpen, setIsModalOpen] = useState(false); // Controle do modal
+  const [selectedServico, setSelectedServico] = useState<Servico | null>(null);
+  const [isModalInfoOpen, setIsModalInfoOpen] = useState(false);
+  const [isModalUpdateOpen, setIsModalUpdateOpen] = useState(false);
+  const [updatedServico, setUpdatedServico] = useState<Servico | null>(null);
+  const [newLogo, setNewLogo] = useState<File | null>(null);
   const storage = getStorage();
+  const [error, setError] = useState<string | null>(null);
 
   const fetchUserData = async () => {
     const user = auth.currentUser;
@@ -59,52 +62,100 @@ export default function MeusServicos() {
     }
   };
 
-  const handleServiceClick = (servico: Servico) => {
-    setSelectedServico(servico); // Define o serviço selecionado
-    setIsModalOpen(true); // Abre o modal
+  const handleUpdateClick = (servico: Servico) => {
+    setUpdatedServico({ ...servico });
+    setIsModalUpdateOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setSelectedServico(null); // Remove o serviço selecionado
-    setIsModalOpen(false); // Fecha o modal
-  };
-
-  const handleUpdateService = (servico: Servico) => {
-    console.log("Atualizando serviço:", servico.nome);
-    // Adicione aqui a lógica para atualizar o serviço
-  };
-
-  const handleDeleteService = async (servico: Servico) => {
-    console.log("Excluindo serviço:", servico.nome);
-
-    // Excluir logo do serviço do Firebase Storage
-    if (servico.logo) {
-      const logoRef = ref(storage, servico.logo);
+  const handleDeleteClick = async (servicoNome: string) => {
+    if (userData) {
       try {
-        await deleteObject(logoRef);
-        console.log("Logo excluído com sucesso.");
+        const userDocRef = doc(db, "users", auth.currentUser!.uid);
+        const updatedServicos = userData.servicos.filter(
+          (servico) => servico.nome !== servicoNome
+        );
+
+        // Atualiza os dados no Firestore
+        await updateDoc(userDocRef, {
+          servicos: updatedServicos,
+        });
+
+        // Atualiza o estado local e o localStorage
+        setUserData({ ...userData, servicos: updatedServicos });
+        localStorage.setItem("userData", JSON.stringify({ ...userData, servicos: updatedServicos }));
+
+        console.log(`Serviço ${servicoNome} excluído com sucesso.`);
       } catch (error) {
-        console.error("Erro ao excluir logo:", error);
+        console.error("Erro ao excluir o serviço:", error);
+        setError("Falha ao excluir o serviço.");
       }
     }
+  };
 
-    // Atualizar o Firestore removendo o serviço
-    if (userData) {
-      const updatedServicos = userData.servicos.filter(
-        (s) => s.nome !== servico.nome
-      );
-      const userDocRef = doc(db, "users", auth.currentUser!.uid);
+  const handleCloseUpdateModal = () => {
+    setUpdatedServico(null);
+    setNewLogo(null);
+    setIsModalUpdateOpen(false);
+  };
 
-      try {
-        await updateDoc(userDocRef, { servicos: updatedServicos });
-        console.log("Serviço excluído do Firestore.");
-        setUserData({ ...userData, servicos: updatedServicos });
-        localStorage.setItem(
-          "userData",
-          JSON.stringify({ ...userData, servicos: updatedServicos })
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (updatedServico) {
+      setUpdatedServico({
+        ...updatedServico,
+        [e.target.name]: e.target.value,
+      });
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setNewLogo(e.target.files[0]);
+    }
+  };
+
+  const handleUpdateService = async () => {
+    if (updatedServico) {
+      let newLogoURL = updatedServico.logo;
+
+      // Se o usuário escolheu uma nova imagem
+      if (newLogo) {
+        try {
+          const storageRef = ref(storage, `logos/${newLogo.name}`);
+          await uploadBytes(storageRef, newLogo);
+          newLogoURL = await getDownloadURL(storageRef); // Obtém a URL da nova imagem
+        } catch (error) {
+          console.error("Erro ao fazer upload da imagem:", error);
+          setError("Falha ao carregar a nova imagem.");
+          return;
+        }
+      }
+
+      updatedServico.logo = newLogoURL;
+
+      // Atualiza o Firestore
+      if (userData) {
+        const userDocRef = doc(db, "users", auth.currentUser!.uid);
+        const updatedServicos = userData.servicos.map((servico) =>
+          servico.nome === selectedServico?.nome
+            ? updatedServico // Substitui o serviço antigo pelo novo
+            : servico
         );
-      } catch (error) {
-        console.error("Erro ao atualizar Firestore:", error);
+
+        try {
+          // Atualiza o Firestore com os novos dados do serviço
+          await updateDoc(userDocRef, {
+            servicos: updatedServicos,
+          });
+
+          // Atualiza o estado local com os dados atualizados
+          setUserData({ ...userData, servicos: updatedServicos });
+          localStorage.setItem("userData", JSON.stringify({ ...userData, servicos: updatedServicos }));
+
+          handleCloseUpdateModal();
+        } catch (error) {
+          console.error("Erro ao atualizar Firestore:", error);
+          setError("Falha ao atualizar os dados no Firestore.");
+        }
       }
     }
   };
@@ -123,6 +174,16 @@ export default function MeusServicos() {
     }
   }, [router]);
 
+  // Função para abrir o modal de informações ao clicar na div do serviço
+  const handleServicoClick = (servico: Servico) => {
+    setSelectedServico(servico);
+    setIsModalInfoOpen(true); // Abre o modal de informações
+  };
+
+  const handleCloseInfoModal = () => {
+    setIsModalInfoOpen(false);
+  };
+
   return (
     <div className="flex w-screen h-screen">
       <SideBar
@@ -134,80 +195,148 @@ export default function MeusServicos() {
       <div className="w-full p-4">
         {userData?.servicos?.map((servico: Servico) => (
           <div
-            className="border border-gray-500 rounded w-full my-2 p-2 flex items-center gap-2"
+            className="border border-gray-500 rounded w-full my-2 p-2 flex items-center gap-2 cursor-pointer"
             key={servico.nome}
+            onClick={() => handleServicoClick(servico)} // Abre o modal de informações
           >
-            {/* Clique no restante do card para abrir o modal */}
-            <div
-              className="flex-1 cursor-pointer"
-              onClick={() => handleServiceClick(servico)}
-            >
-              <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
-                <Image
-                  className="object-cover"
-                  src={servico.logo || "/images/placeholder.png"}
-                  height={64}
-                  width={64}
-                  alt={`Logo do serviço ${servico.nome}`}
-                />
-              </div>
-              <div className="font-semibold capitalize">{servico.nome}</div>
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+              <Image
+                className="object-cover"
+                src={servico.logo || "/images/placeholder.png"}
+                height={64}
+                width={64}
+                alt={`Logo do serviço ${servico.nome}`}
+              />
             </div>
+            <div className="font-semibold capitalize ml-3">{servico.nome}</div>
 
-            {/* Botões de ação */}
-            <div className="flex items-center gap-6">
-              <button onClick={() => handleUpdateService(servico)}>
-                <Image
-                  src="/images/atualizar.png"
-                  width={30}
-                  height={30}
-                  alt="atualizar"
-                />
+            <div className="ml-auto flex gap-4 mr-5">
+              {/* Botão de atualizar */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // Evita que o click no botão de update abra o modal
+                  handleUpdateClick(servico);
+                }}
+              >
+                <Image src="/images/atualizar.png" width={30} height={30} alt="atualizar"></Image>
               </button>
-              <button onClick={() => handleDeleteService(servico)}>
-                <Image
-                  src="/images/excluir.png"
-                  width={30}
-                  height={30}
-                  alt="excluir"
-                />
+              {/* Botão de excluir */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // Evita que o click no botão de delete abra o modal
+                  handleDeleteClick(servico.nome);
+                }}
+              >
+                <Image src="/images/excluir.png" width={30} height={30} alt="atualizar"></Image>
               </button>
             </div>
           </div>
         ))}
 
-        {/* Modal */}
-        {isModalOpen && selectedServico && (
+        
+   {/* Novo Modal de Informações */}
+{isModalInfoOpen && selectedServico && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="bg-white p-6 rounded shadow-lg w-96 max-w-full flex flex-col items-center">
+      <h2 className="text-xl font-bold mb-4">Detalhes do Serviço</h2>
+
+      <div className="mb-4 w-full">
+        <div className="flex justify-center">
+          {selectedServico.logo ? (
+            <Image
+              src={selectedServico.logo}
+              alt={`Logo do serviço ${selectedServico.nome}`}
+              width={128}
+              height={128}
+              className="rounded-full"
+            />
+          ) : (
+            <div className="w-32 h-32 bg-gray-200 flex items-center justify-center rounded-full">
+              <span>Sem logo</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Exibição do nome */}
+      <div className="mb-4 w-full">
+        <div className="font-semibold">Nome do Serviço:</div>
+        <div>{selectedServico.nome}</div>
+      </div>
+
+      {/* Exibição da descrição */}
+      <div className="mb-4 w-full">
+        <div className="font-semibold">Descrição:</div>
+        <div
+            className="text-md text-gray-600 overflow-y-auto"
+            style={{ maxHeight: '150px' }}
+        >
+            {selectedServico.descricao}
+        </div>
+       </div>
+
+      
+
+      {/* Botão de fechar */}
+      <button
+        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+        onClick={handleCloseInfoModal}
+      >
+        Fechar
+      </button>
+    </div>
+  </div>
+)}
+
+
+
+
+        {/* Modal de Atualização */}
+        {isModalUpdateOpen && updatedServico && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded shadow-lg w-96 max-w-full flex flex-col items-center text-center">
-              {/* Título */}
-              <h2 className="text-xl font-bold mb-4">{selectedServico.nome}</h2>
-
-              {/* Foto */}
-              {selectedServico.logo && (
-                <div className="w-32 h-32 mb-4">
-                  <Image
-                    className="object-cover rounded-full"
-                    src={selectedServico.logo}
-                    alt={`Logo do serviço ${selectedServico.nome}`}
-                    width={128}
-                    height={128}
-                  />
-                </div>
-              )}
-
-              {/* Descrição com rolagem */}
-              <div className="text-sm text-gray-600 mb-6 break-words overflow-y-auto max-h-40 w-full px-2">
-                {selectedServico.descricao}
+            <div className="bg-white p-6 rounded shadow-lg w-96 max-w-full">
+              <h2 className="text-xl font-bold mb-4">Atualizar Serviço</h2>
+              <div className="mb-4">
+                <label htmlFor="nome" className="block text-sm font-medium">Nome:</label>
+                <input
+                  type="text"
+                  id="nome"
+                  name="nome"
+                  value={updatedServico.nome}
+                  onChange={handleInputChange}
+                  className="p-2 border border-gray-300 rounded w-full"
+                />
               </div>
-
-              {/* Botão de Fechar */}
-              <button
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-                onClick={handleCloseModal}
-              >
-                Fechar
-              </button>
+              <div className="mb-4">
+                <label htmlFor="descricao" className="block text-sm font-medium">Descrição:</label>
+                <textarea
+                  id="descricao"
+                  name="descricao"
+                  value={updatedServico.descricao}
+                  onChange={handleInputChange}
+                  className="p-2 border border-gray-300 rounded w-full"
+                />
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="mb-4 p-2 border border-gray-300 rounded"
+              />
+              <div className="flex justify-between w-full">
+                <button
+                  onClick={handleUpdateService}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                >
+                  Atualizar
+                </button>
+                <button
+                  onClick={handleCloseUpdateModal}
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                >
+                  Fechar
+                </button>
+              </div>
             </div>
           </div>
         )}
