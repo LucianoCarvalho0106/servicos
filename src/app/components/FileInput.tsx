@@ -2,6 +2,8 @@ import { useState, ChangeEvent } from 'react';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../../config/firebase'; // Certifique-se que o caminho esteja correto
 import { IdadosForm } from './MultStepForm';
+import { auth } from "../../../config/firebase";
+
 
 interface FileInputProps {
   setDadosUser: React.Dispatch<React.SetStateAction<Partial<IdadosForm>>>;
@@ -11,13 +13,15 @@ const FileInput: React.FC<FileInputProps> = ({ setDadosUser }) => {
   const [fileName, setFileName] = useState<string>('');
   const [uploading, setUploading] = useState<boolean>(false);
 
+  const user = auth.currentUser;
+
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFileName(e.target.files[0].name);
 
       // Lógica de upload da imagem
       const file = e.target.files[0];
-      const storageRef = ref(storage, `uploads/${file.name}`);
+      const storageRef = ref(storage, `uploads/${user!.uid}/${file.name}`);
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       setUploading(true);
