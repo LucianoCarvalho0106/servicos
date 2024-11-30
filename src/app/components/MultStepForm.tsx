@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { Step1, Step2, Step3 } from "../editar/etapasForm";
 import FileInput from "./FileInput";
@@ -24,10 +25,8 @@ const MultiStepForm = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const router = useRouter();
 
-  // Armazena os dados do usuário autenticado
-  const [userData, setUserData] = useState<Partial<IdadosForm> | null>(null);
-
-  // Estado para armazenar dados do formulário
+  const [loading, setLoading] = useState(true); // Gerenciar o estado de carregamento
+  const [userData, setUserData] = useState<Partial<IdadosForm> | null>(null); // Dados do usuário do Firebase
   const [dadosUser, setDadosUser] = useState<Partial<IdadosForm>>({
     nome: "",
     contato: "",
@@ -39,32 +38,37 @@ const MultiStepForm = () => {
     foto: "",
   });
 
-  // Buscar dados do Firebase com base no usuário logado
   useEffect(() => {
     const fetchUserData = async () => {
       const user = auth.currentUser;
 
-      if (user) {
-        const uid = user.uid;
-        const userDocRef = doc(db, "users", uid);
+      if (!user) {
+        // Redireciona para o login se o usuário não estiver autenticado
+        router.push("/");
+        return;
+      }
 
-        try {
-          const docSnapshot = await getDoc(userDocRef);
-          if (docSnapshot.exists()) {
-            const userData = docSnapshot.data() as IdadosForm;
-            setUserData(userData); // Armazena os dados do Firebase no estado
-            setDadosUser(userData); // Preenche o formulário com os dados existentes
-          }
-        } catch (error) {
-          console.error("Erro ao buscar dados do usuário:", error);
+      const uid = user.uid;
+      const userDocRef = doc(db, "users", uid);
+
+      try {
+        const docSnapshot = await getDoc(userDocRef);
+        if (docSnapshot.exists()) {
+          const userData = docSnapshot.data() as IdadosForm;
+          setUserData(userData); // Define os dados do Firebase
+          setDadosUser(userData); // Preenche o formulário com os dados existentes
         }
+      } catch (error) {
+        console.error("Erro ao buscar dados do usuário:", error);
+      } finally {
+        setLoading(false); // Finaliza o estado de carregamento
       }
     };
 
     fetchUserData();
-  }, []);
+  }, [router]);
 
-  // Definir os passos do formulário
+  // Define os passos do formulário, incluindo `user` e `dadosUser`
   const steps = [
     <Step1 user={userData} dadosUser={dadosUser} setDadosUser={setDadosUser} />,
     <Step2 user={userData} dadosUser={dadosUser} setDadosUser={setDadosUser} />,
@@ -77,7 +81,6 @@ const MultiStepForm = () => {
     } else {
       try {
         const user = auth.currentUser;
-
         if (user) {
           const uid = user.uid;
           await setDoc(doc(db, "users", uid), dadosUser);
@@ -97,8 +100,12 @@ const MultiStepForm = () => {
     }
   };
 
-  if (!userData) {
-    return <p>Carregando...</p>; // Mostra um estado de carregamento enquanto os dados do usuário estão sendo buscados
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p>Carregando...</p>
+      </div>
+    );
   }
 
   return (
@@ -109,7 +116,7 @@ const MultiStepForm = () => {
         {steps[currentStep]}
 
         <div className="mt-12 w-1/3">
-          {currentStep === 0 ? <FileInput setDadosUser={setDadosUser} /> : null}
+          {currentStep === 0 && <FileInput setDadosUser={setDadosUser} />}
 
           <div className="flex justify-between mt-4">
             <button
@@ -123,7 +130,7 @@ const MultiStepForm = () => {
               className="bg-green-600 text-white p-2 w-72 rounded-sm"
               onClick={handleNext}
             >
-              Avançar
+              {currentStep === steps.length - 1 ? "Salvar" : "Avançar"}
             </button>
           </div>
         </div>
