@@ -1,22 +1,24 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SideBar from "../components/SideBar";
-import { doc, onSnapshot } from "firebase/firestore";
-import { getDownloadURL, ref } from "firebase/storage";
-import { useEffect, useState } from "react";
+import { collection, doc, onSnapshot } from "firebase/firestore";
 import { auth, db, storage } from "../../../config/firebase";
+import { getDownloadURL, ref } from "firebase/storage";
+import Image from "next/image";
 
 export default function App() {
   const router = useRouter();
   const [userData, setUserData] = useState<any>({});
   const [userPhotoURL, setUserPhotoURL] = useState<string | null>(null);
+  const [services, setServices] = useState<any[]>([]);
 
   const fetchUserData = () => {
     const user = auth.currentUser;
 
     if (user) {
-      const uid = user.uid; // Obtém o uid do usuário
+      const uid = user.uid;
 
       try {
         const userDocRef = doc(db, "users", uid);
@@ -43,13 +45,35 @@ export default function App() {
           }
         });
 
-        // Retorna a função de cleanup para o listener
         return unsubscribe;
       } catch (error) {
         console.error("Erro ao configurar listener de dados do usuário:", error);
       }
     } else {
       console.log("Nenhum usuário conectado.");
+    }
+  };
+
+  const fetchServices = () => {
+    try {
+      const servicesCollectionRef = collection(db, "users");
+
+      // Listener em tempo real para a coleção de serviços
+      const unsubscribe = onSnapshot(servicesCollectionRef, (querySnapshot) => {
+        const user = auth.currentUser;
+        const servicesData = querySnapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+          .filter((service) => service.id !== user?.uid); // Filtra o próprio usuário
+
+        setServices(servicesData);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      console.error("Erro ao buscar serviços:", error);
     }
   };
 
@@ -64,14 +88,12 @@ export default function App() {
       router.push("/");
     }
 
-    // Configura o listener em tempo real
-    const unsubscribe = fetchUserData();
+    const unsubscribeUser = fetchUserData();
+    const unsubscribeServices = fetchServices();
 
-    // Cleanup ao desmontar o componente
     return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
+      if (unsubscribeUser) unsubscribeUser();
+      if (unsubscribeServices) unsubscribeServices();
     };
   }, [router]);
 
@@ -81,9 +103,39 @@ export default function App() {
         nome={userData.nome}
         cargo={userData.cargo}
         isEmplloyee={true}
-        src={userPhotoURL || userData.foto} // Usa a URL do Storage ou fallback para a propriedade "foto"
+        src={userPhotoURL || userData.foto}
       />
-      <div></div>
+      <div className="flex-1 p-4">
+        <h1 className="text-2xl font-bold mb-4">Serviços Disponíveis</h1>
+        <ul className="space-y-4">
+          {services.map((service) => (
+            <div
+              key={service.id}
+              className="p-4 border rounded-md shadow-md flex items-center justify-between"
+            >
+              <div className="flex items-center gap-4">
+                <Image
+                  className="rounded"
+                  src={service.foto}
+                  alt="foto"
+                  width={40}
+                  height={40}
+                />
+                <div>
+                  <h2 className="text-lg font-semibold">{service.nome}</h2>
+                  <p>{service.description}</p>
+                  {service.cargo && (
+                    <p className="text-gray-700">{service.cargo}</p>
+                  )}
+                </div>
+              </div>
+              <button className="px-4 py-2 bg-green-500 text-white rounded-md shadow hover:bg-green-600">
+                Conversar
+              </button>
+            </div>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
